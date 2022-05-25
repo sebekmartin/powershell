@@ -4,19 +4,19 @@
 # USER DEFINED VARIABLES, PLEASE FILL THOSE IN BEFORE RUNNING THE SCRIPT!
 
 # SMTP server
-# 
-# 
+# Set in this variable SMTP server, you want to use for sending emails
+# Example: "smtp.office365.com"
 $SMTPserver = ""
 
 # SMTP Port
-# 
-# 
+# Use this variable to define, which port you want to use for sending emails
+# Example: "25"
 $SMTPport = ""
 
 # Credentials
 #
 #
-$Credentials = ""
+$Credentials = $null
 
 # SSL
 # Do you want to use SSL during connection to SMTP server?
@@ -65,9 +65,19 @@ $users =  @()
 #######################################
 
 # initialize the $users variable
-Get-Process $processToCheck -IncludeUserName | ForEach-Object {$users += $_.UserName}
+try {
+    Get-Process $processToCheck -IncludeUserName -ea SilentlyContinue | ForEach-Object {$users += $_.UserName}
+} catch {
+    Write-Error $_
+}
 
 
 if(!$users.contains($checkedUserName)) {
-    Send-MailMessage -From $Sender -To $EmailRecipients -Subject $Subject -BodyAsHtml $Body -SmtpServer $SMTPserver -Port $SMTPport -UseSsl
+    if($Credentials -and $UseSsl) {
+        Send-MailMessage -From $Sender -To $EmailRecipients -Subject $Subject -BodyAsHtml $Body -SmtpServer $SMTPserver -Port $SMTPport -UseSsl -Credential $Credentials
+    } elseif ($UseSsl) {
+        Send-MailMessage -From $Sender -To $EmailRecipients -Subject $Subject -BodyAsHtml $Body -SmtpServer $SMTPserver -Port $SMTPport -UseSsl
+    } elseif ($Credentials) {
+        Send-MailMessage -From $Sender -To $EmailRecipients -Subject $Subject -BodyAsHtml $Body -SmtpServer $SMTPserver -Port $SMTPport -Credential $Credentials
+    }
 }
