@@ -27,7 +27,7 @@ else {
     Write-Host "If you want, you can set the string to filter the users, you will modify. `n You can check the docs here: https://learn.microsoft.com/en-us/powershell/module/exchange/get-exomailbox?view=exchange-ps `n Please type the filter below." -BackgroundColor black -foregroundColor Cyan;
     $filter = Read-Host "Type in your filter [Default: *]"
     if ([string]::IsNullOrEmpty($filter)) {
-        $filter = "RecipientType -eq UserMailbox";
+        $filter = 'Alias -ne $null';
 
         # Confirm, if user really want to set alias to all the users
         $confirmation = Read-Host "All users will now have alias with domain @$selectedDomain! Please confirm your choice [Y/N]";
