@@ -11,13 +11,19 @@ if (-Not (Test-Path $csvFilePath)) {
 
 # Import the CSV data
 $users = Import-Csv -Path $csvFilePath
+$validCsv = $true
 
 # Validate the required columns
 foreach ($user in $users) {
     if (-Not ($user.FirstName -and $user.LastName -and $user.DisplayName -and $user.UserPrincipalName -and $user.Password -and $user.UsageLocation)) {
         Write-Error "One or more required columns are missing in the CSV file for user: $($user.DisplayName)"
+        $validCsv = $false
         continue
     }
+}
+if (-Not $validCsv) {
+    Write-Error "CSV file validation failed. Please check the required columns."
+    return
 }
 
 # Connect to Entra ID (Azure AD)
