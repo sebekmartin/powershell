@@ -15,7 +15,7 @@ $validCsv = $true
 
 # Validate the required columns
 foreach ($user in $users) {
-    if (-Not ($user.FirstName -and $user.LastName -and $user.DisplayName -and $user.UserPrincipalName -and $user.Password -and $user.UsageLocation)) {
+    if (-Not ($user.FirstName -and $user.LastName -and $user.DisplayName -and $user.UserPrincipalName -and $user.Password -and $user.UsageLocation -and $user.MailNickname)) {
         Write-Error "One or more required columns are missing in the CSV file for user: $($user.DisplayName)"
         $validCsv = $false
         continue
@@ -27,7 +27,7 @@ if (-Not $validCsv) {
 }
 
 # Connect to Entra ID (Azure AD)
-Connect-MgGraph -Scopes "User.ReadWrite.All"
+Connect-MgGraph -Scopes "User.ReadWrite.All" -NoWelcome
 
 # Loop through each user in the CSV file
 foreach ($user in $users) {
@@ -38,7 +38,7 @@ foreach ($user in $users) {
 
     # Create a new user
     try {
-        New-MgUser -DisplayName $user.DisplayName -GivenName $user.FirstName -Surname $user.LastName -UserPrincipalName $user.UserPrincipalName -UsageLocation $user.UsageLocation -PasswordProfile $passwordProfile -AccountEnabled
+        New-MgBetaUser -MailNickname $user.MailNickname -DisplayName $user.DisplayName -GivenName $user.FirstName -Surname $user.LastName -UserPrincipalName $user.UserPrincipalName -UsageLocation $user.UsageLocation -PasswordProfile $passwordProfile -AccountEnabled
         Write-Host "User $($user.UserPrincipalName) created successfully." -ForegroundColor Green
     }
     catch {
