@@ -38,7 +38,7 @@ foreach ($user in $users) {
 
     # Create a new user
     try {
-        New-MgBetaUser -MailNickname $user.MailNickname -DisplayName $user.DisplayName -GivenName $user.FirstName -Surname $user.LastName -UserPrincipalName $user.UserPrincipalName -UsageLocation $user.UsageLocation -PasswordProfile $passwordProfile -AccountEnabled
+        New-MgBetaUser -MailNickname $user.MailNickname -DisplayName $user.DisplayName -GivenName $user.FirstName -Surname $user.LastName -UserPrincipalName $user.UserPrincipalName -UsageLocation $user.UsageLocation -PasswordProfile $passwordProfile -AccountEnabled -ErrorAction Stop
         Write-Host "User $($user.UserPrincipalName) created successfully." -ForegroundColor Green
     }
     catch {
