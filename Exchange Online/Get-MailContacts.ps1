@@ -1,3 +1,10 @@
+param([Parameter(Mandatory = $false)]
+    [string]
+    $destinationCSVPath = ".\contacts.csv"
+)
+
+Connect-ExchangeOnline
+
 # Get all contacts and select specific properties
 $contacts = Get-MailContact -ResultSize Unlimited
 
@@ -14,4 +21,4 @@ $contacts = $contacts | ForEach-Object {
 }
 
 # Export the contacts to a CSV file
-$contacts | Export-Csv -Path ".\contacts.csv" -NoTypeInformation -Encoding UTF8
+$contacts | Export-Csv -Path $destinationCSVPath -NoTypeInformation -Encoding UTF8
