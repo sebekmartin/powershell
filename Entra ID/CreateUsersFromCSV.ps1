@@ -1,16 +1,16 @@
 param (
     [Parameter(Mandatory = $true)]
-    [string]$csvFilePath
+    [string]$CsvPath
 )
 
 # Ensure the file exists
-if (-Not (Test-Path $csvFilePath)) {
-    Write-Error "CSV file not found at path: $csvFilePath"
+if (-Not (Test-Path $CsvPath)) {
+    Write-Error "CSV file not found at path: $CsvPath"
     return
 }
 
 # Import the CSV data
-$users = Import-Csv -Path $csvFilePath
+$users = Import-Csv -Path $CsvPath
 $validCsv = $true
 
 # Validate the required columns

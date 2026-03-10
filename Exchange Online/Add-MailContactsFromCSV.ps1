@@ -7,7 +7,7 @@ param (
 
 Connect-ExchangeOnline
 
-$csv = Import-Csv -Path $CsvFilePath -Delimiter $CsvDelimiter -Encoding UTF8
+$csv = Import-Csv -Path $CsvPath -Delimiter $CsvDelimiter -Encoding UTF8
 
 # For each entry in the CSV, create contact with the display name and UPN
 foreach ($entry in $csv) {

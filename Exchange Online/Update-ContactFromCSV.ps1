@@ -3,14 +3,14 @@
 
 param (
     [Parameter(Mandatory = $true)]
-    [string]$CsvFilePath,
+    [string]$CsvPath,
     [Parameter(Mandatory = $false)]
     [string]$CsvDelimiter = ","
 )
 
 Connect-ExchangeOnline
 
-$csv = Import-Csv -Path $CsvFilePath -Delimiter $CsvDelimiter -Encoding UTF8
+$csv = Import-Csv -Path $CsvPath -Delimiter $CsvDelimiter -Encoding UTF8
 
 # For each entry in the CSV, update the display name and UPN of the distribution group
 foreach ($entry in $csv) {

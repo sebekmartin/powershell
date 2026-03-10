@@ -7,19 +7,19 @@ Connect-ExchangeOnline
 # Define CSV file path
 param (
     [Parameter(Mandatory = $true)]
-    [string]$CsvFilePath,
+    [string]$CsvPath,
     [Parameter(Mandatory = $false)]
     [string]$CsvDelimiter = ","
 )
 
 # Check if CSV file exists
-if (-not (Test-Path $CsvFilePath)) {
-    Write-Error "CSV file not found at: $CsvFilePath"
+if (-not (Test-Path $CsvPath)) {
+    Write-Error "CSV file not found at: $CsvPath"
     exit
 }
 
 # Import CSV data
-$users = Import-Csv -Path $CsvFilePath -Delimiter $CsvDelimiter -Encoding UTF8
+$users = Import-Csv -Path $CsvPath -Delimiter $CsvDelimiter -Encoding UTF8
 
 # Create mail users from CSV
 foreach ($user in $users) {

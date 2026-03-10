@@ -1,7 +1,7 @@
 # Loop through each user in the CSV
 param (
     [Parameter(Mandatory = $true)]
-    [string]$CsvFilePath,
+    [string]$CsvPath,
     [Parameter(Mandatory = $false)]
     [string]$CsvDelimiter = ","
 )
@@ -9,7 +9,7 @@ param (
 Connect-ExchangeOnline
 
 # Import the CSV file
-$users = Import-Csv -Path $CsvFilePath -Delimiter $CsvDelimiter -Encoding UTF8
+$users = Import-Csv -Path $CsvPath -Delimiter $CsvDelimiter -Encoding UTF8
 
 # Loop through each user in the CSV
 foreach ($user in $users) {

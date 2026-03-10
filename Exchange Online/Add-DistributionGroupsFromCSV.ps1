@@ -1,7 +1,7 @@
 # This script is designed to follow script called Get-DistributionGroups.ps1 from this repository.
 param (
     [Parameter(Mandatory = $true)]
-    [string]$CsvFilePath,
+    [string]$CsvPath,
     [Parameter(Mandatory = $false)]
     [string]$CsvDelimiter = ","
 )
@@ -11,7 +11,7 @@ param (
 Connect-ExchangeOnline
 
 # Import CSV file
-$groups = Import-Csv -Path $CsvFilePath -Delimiter $CsvDelimiter -Encoding UTF8
+$groups = Import-Csv -Path $CsvPath -Delimiter $CsvDelimiter -Encoding UTF8
 
 # Create distribution groups from CSV
 foreach ($group in $groups) {
