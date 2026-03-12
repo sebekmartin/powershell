@@ -17,9 +17,9 @@ foreach ($equipment in $equipments) {
             $calendarConfiguration = Get-MailboxCalendarConfiguration -Identity $equipment.Identity -ErrorAction SilentlyContinue
             $mailboxPermissions = Get-MailboxPermission -Identity $equipment.Identity -ErrorAction SilentlyContinue -WarningAction SilentlyContinue | Where-Object { $_.IsInherited -eq $false -and $_.User.toString() -ne "NT AUTHORITY\SELF" }
             $calendarFolder = Get-EXOMailboxFolderStatistics -Identity $equipment.Identity -FolderScope calendar | Where-Object { $_.FolderType -eq "Calendar" }
-            $calendarFolderPermissions = Get-MailboxFolderPermission -Identity "$($equipment.PrimarySmtpAddress):\$($calendarFolder.Name)" -ErrorAction SilentlyContinue -WarningAction SilentlyContinue | Where-Object { $_.IsInherited -eq $false -and $_.User.toString() -ne "NT AUTHORITY\SELF" }
+            $calendarFolderPermissions = Get-MailboxFolderPermission -Identity "$($equipment.PrimarySmtpAddress):\$($calendarFolder.Name)" -ErrorAction SilentlyContinue -WarningAction SilentlyContinue
 
-            $recipientPermissions = Get-RecipientPermission -Identity $equipment.Identity -ErrorAction SilentlyContinue -WarningAction SilentlyContinue | Where-Object { $_.IsInherited -eq $false -and $_.Trustee.toString() -ne "NT AUTHORITY\SELF" }
+            $recipientPermissions = Get-RecipientPermission -Identity $equipment.Identity -ErrorAction SilentlyContinue -WarningAction SilentlyContinue 
 
             # Validate that required objects were retrieved
             if (-not $calendarProcessing -or -not $calendarConfiguration) {
@@ -81,7 +81,7 @@ foreach ($equipment in $equipments) {
             PostReservationMaxClaimTimeInMinutes = $calendarProcessing.PostReservationMaxClaimTimeInMinutes
             FullAccessPermissions                = if ($mailboxPermissions) { ($mailboxPermissions | ForEach-Object { $_.User.ToString() }) -join "~" } else { "" }
             SendAsPermissions                    = if ($recipientPermissions) { ($recipientPermissions | ForEach-Object { $_.Trustee.ToString() }) -join "~" } else { "" }
-            SendOnBehalfPermissions              = if ($equipmentMailbox.GrantSendOnBehalfTo) { ($equipmentMailbox.GrantSendOnBehalfTo | ForEach-Object { $_.PrimarySmtpAddress.ToString() }) -join "~" } else { "" }
+            SendOnBehalfPermissions              = if ($equipmentMailbox.GrantSendOnBehalfTo) { ($equipmentMailbox.GrantSendOnBehalfTo | Where-Object { $_ -and $_.PrimarySmtpAddress } | ForEach-Object { $_.PrimarySmtpAddress.ToString() }) -join "~" } else { "" }
             CalendarFolderPermissions            = if ($calendarFolderPermissions) { ($calendarFolderPermissions | ForEach-Object { "$($_.User):$($_.AccessRights)" }) -join "~" } else { "" }
         }
         $results += $output
