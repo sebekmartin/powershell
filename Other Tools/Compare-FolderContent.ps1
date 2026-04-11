@@ -10,7 +10,10 @@ param (
 
     [Parameter(Mandatory = $true)]
     [ValidateNotNullOrEmpty()]
-    [string]$CsvOutputPath
+    [string]$CsvOutputPath,
+
+    [Parameter(Mandatory = $false)]
+    [string[]]$ExcludeRelativePathPrefix = @()
 )
 
 function Get-NormalizedRelativePaths {
@@ -55,6 +58,38 @@ function Get-NormalizedRelativePath {
     [System.Uri]::UnescapeDataString($relativePath).Replace('\', '/')
 }
 
+function Get-NormalizedPrefix {
+    param (
+        [Parameter(Mandatory = $true)]
+        [string]$Prefix
+    )
+
+    $Prefix.Replace('\', '/').Trim('/')
+}
+
+function Test-IsExcludedRelativePath {
+    param (
+        [Parameter(Mandatory = $true)]
+        [string]$RelativePath,
+
+        [Parameter(Mandatory = $true)]
+        [System.Collections.Generic.List[string]]$ExcludedPrefixes
+    )
+
+    $normalizedPath = $RelativePath.Replace('\', '/').Trim('/')
+
+    foreach ($prefix in $ExcludedPrefixes) {
+        if (
+            $normalizedPath.Equals($prefix, [System.StringComparison]::OrdinalIgnoreCase) -or
+            $normalizedPath.StartsWith($prefix + '/', [System.StringComparison]::OrdinalIgnoreCase)
+        ) {
+            return $true
+        }
+    }
+
+    return $false
+}
+
 if (-not (Test-Path -Path $SourceFolder -PathType Container)) {
     Write-Error "Source folder does not exist or is not a directory: $SourceFolder"
     exit 1
@@ -68,6 +103,13 @@ if (-not (Test-Path -Path $CheckFolder -PathType Container)) {
 $csvDirectory = Split-Path -Path $CsvOutputPath -Parent
 if ($csvDirectory -and -not (Test-Path -Path $csvDirectory -PathType Container)) {
     New-Item -Path $csvDirectory -ItemType Directory -Force | Out-Null
+}
+
+$excludedPrefixes = [System.Collections.Generic.List[string]]::new()
+foreach ($prefix in $ExcludeRelativePathPrefix) {
+    if (-not [string]::IsNullOrWhiteSpace($prefix)) {
+        $excludedPrefixes.Add((Get-NormalizedPrefix -Prefix $prefix))
+    }
 }
 
 $checkFilePaths = @(Get-NormalizedRelativePaths -BaseFolder $CheckFolder -ItemType File)
@@ -98,6 +140,10 @@ try {
     foreach ($sourceDirectory in Get-ChildItem -Path $sourceFolderResolved -Directory -Recurse) {
         $relativePath = Get-NormalizedRelativePath -BaseFolder $sourceFolderResolved -FilePath $sourceDirectory.FullName
 
+        if (Test-IsExcludedRelativePath -RelativePath $relativePath -ExcludedPrefixes $excludedPrefixes) {
+            continue
+        }
+
         if (-not $checkDirectoryPathSet.Contains($relativePath)) {
             $escapedRelativePath = $relativePath.Replace('"', '""')
             $csvWriter.WriteLine("""Directory"",""$escapedRelativePath"",""False""")
@@ -108,6 +154,10 @@ try {
 
     foreach ($sourceFile in Get-ChildItem -Path $sourceFolderResolved -File -Recurse) {
         $relativePath = Get-NormalizedRelativePath -BaseFolder $sourceFolderResolved -FilePath $sourceFile.FullName
+
+        if (Test-IsExcludedRelativePath -RelativePath $relativePath -ExcludedPrefixes $excludedPrefixes) {
+            continue
+        }
 
         if (-not $checkFilePathSet.Contains($relativePath)) {
             $escapedRelativePath = $relativePath.Replace('"', '""')
