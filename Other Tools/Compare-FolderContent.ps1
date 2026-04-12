@@ -72,8 +72,8 @@ function Test-IsExcludedRelativePath {
         [Parameter(Mandatory = $true)]
         [string]$RelativePath,
 
-        [Parameter(Mandatory = $true)]
-        [System.Collections.Generic.List[string]]$ExcludedPrefixes
+        [AllowEmptyCollection()]
+        [string[]]$ExcludedPrefixes = @()
     )
 
     $normalizedPath = $RelativePath.Replace('\', '/').Trim('/')
@@ -100,15 +100,18 @@ if (-not (Test-Path -Path $CheckFolder -PathType Container)) {
     exit 1
 }
 
-$csvDirectory = Split-Path -Path $CsvOutputPath -Parent
+$csvOutputPathResolved = $ExecutionContext.SessionState.Path.GetUnresolvedProviderPathFromPSPath($CsvOutputPath)
+$csvDirectory = Split-Path -Path $csvOutputPathResolved -Parent
 if ($csvDirectory -and -not (Test-Path -Path $csvDirectory -PathType Container)) {
     New-Item -Path $csvDirectory -ItemType Directory -Force | Out-Null
 }
 
 $excludedPrefixes = [System.Collections.Generic.List[string]]::new()
-foreach ($prefix in $ExcludeRelativePathPrefix) {
-    if (-not [string]::IsNullOrWhiteSpace($prefix)) {
-        $excludedPrefixes.Add((Get-NormalizedPrefix -Prefix $prefix))
+if ($ExcludeRelativePathPrefix.Count -gt 0) {
+    foreach ($prefix in $ExcludeRelativePathPrefix) {
+        if (-not [string]::IsNullOrWhiteSpace($prefix)) {
+            $excludedPrefixes.Add((Get-NormalizedPrefix -Prefix $prefix))
+        }
     }
 }
 
@@ -134,7 +137,7 @@ $csvWriter = $null
 $missingItemCount = 0
 
 try {
-    $csvWriter = [System.IO.StreamWriter]::new($CsvOutputPath, $false, [System.Text.UTF8Encoding]::new($true))
+    $csvWriter = [System.IO.StreamWriter]::new($csvOutputPathResolved, $false, [System.Text.UTF8Encoding]::new($true))
     $csvWriter.WriteLine('"ItemType","RelativePath","ExistsInCheckFolder"')
 
     foreach ($sourceDirectory in Get-ChildItem -Path $sourceFolderResolved -Directory -Recurse) {
@@ -175,9 +178,9 @@ finally {
 
 if ($missingItemCount -gt 0) {
     Write-Host "Missing items in check folder: $missingItemCount"
-    Write-Host "CSV report saved to: $CsvOutputPath"
+    Write-Host "CSV report saved to: $csvOutputPathResolved"
     exit 1
 }
 
 Write-Host "All directories and files from source folder exist in check folder."
-Write-Host "CSV report saved to: $CsvOutputPath"
+Write-Host "CSV report saved to: $csvOutputPathResolved"
