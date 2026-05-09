@@ -5,6 +5,9 @@ param(
     [Alias("BackupPath")]
     [string]$BackupRoot,
 
+    [Alias("LogPath")]
+    [string]$LogRoot,
+
     [switch]$Recursive,
 
     [switch]$WhatIf
@@ -101,6 +104,19 @@ function Get-SubtitleBackupPath {
     return Join-Path -Path $BackupRoot -ChildPath "$relativePath.bak"
 }
 
+function Write-RepairSubtitleLog {
+    param(
+        [string]$Message,
+        [string]$LogFilePath
+    )
+
+    Write-Host $Message
+
+    if (-not [string]::IsNullOrWhiteSpace($LogFilePath)) {
+        Add-Content -LiteralPath $LogFilePath -Value $Message -Encoding UTF8
+    }
+}
+
 if (-not (Test-Path $Path)) {
     throw "Zadaná složka neexistuje: $Path"
 }
@@ -119,6 +135,35 @@ else {
     $null
 }
 
+$logFilePath = $null
+$changedFilesLogPath = $null
+
+if (-not [string]::IsNullOrWhiteSpace($LogRoot)) {
+    $resolvedLogPath = $ExecutionContext.SessionState.Path.GetUnresolvedProviderPathFromPSPath($LogRoot)
+
+    if (-not (Test-Path -LiteralPath $resolvedLogPath)) {
+        New-Item -Path $resolvedLogPath -ItemType Directory -Force | Out-Null
+    }
+
+    $timestamp = Get-Date -Format "yyyyMMdd-HHmmss"
+    $modeName = if ($WhatIf) { "whatif" } else { "run" }
+    $logFilePath = Join-Path -Path $resolvedLogPath -ChildPath "repair-subtitle-encoding-$modeName-$timestamp.log"
+
+    New-Item -Path $logFilePath -ItemType File -Force | Out-Null
+
+    if ($WhatIf) {
+        $changedFilesLogPath = Join-Path -Path $resolvedLogPath -ChildPath "changed-files-$timestamp.txt"
+        New-Item -Path $changedFilesLogPath -ItemType File -Force | Out-Null
+    }
+
+    Add-Content -LiteralPath $logFilePath -Value "Start: $(Get-Date -Format 'yyyy-MM-dd HH:mm:ss')" -Encoding UTF8
+    Add-Content -LiteralPath $logFilePath -Value "Path: $Path" -Encoding UTF8
+    Add-Content -LiteralPath $logFilePath -Value "Recursive: $Recursive" -Encoding UTF8
+    Add-Content -LiteralPath $logFilePath -Value "WhatIf: $WhatIf" -Encoding UTF8
+    Add-Content -LiteralPath $logFilePath -Value "BackupRoot: $resolvedBackupPath" -Encoding UTF8
+    Add-Content -LiteralPath $logFilePath -Value "" -Encoding UTF8
+}
+
 $files = Get-ChildItem `
     -Path $Path `
     -File `
@@ -128,9 +173,12 @@ Where-Object { $SubtitleExtensions -contains $_.Extension.ToLowerInvariant() }
 foreach ($file in $files) {
     $encoding = Get-FileEncoding -FilePath $file.FullName
 
-    Write-Host "Kontroluji: $($file.FullName) [$encoding]"
+    Write-RepairSubtitleLog -Message "Kontroluji: $($file.FullName) [$encoding]" -LogFilePath $logFilePath
 
     if ($encoding -eq "UTF8") {
+        if (-not [string]::IsNullOrWhiteSpace($logFilePath)) {
+            Add-Content -LiteralPath $logFilePath -Value "  OK - soubor uz je UTF-8 bez BOM" -Encoding UTF8
+        }
         Write-Host "  OK - soubor už je UTF-8 bez BOM"
         continue
     }
@@ -147,6 +195,12 @@ foreach ($file in $files) {
         $backupPath = $backupFilePath
 
         if ($WhatIf) {
+            if (-not [string]::IsNullOrWhiteSpace($changedFilesLogPath)) {
+                Add-Content -LiteralPath $changedFilesLogPath -Value $file.FullName -Encoding UTF8
+            }
+            if (-not [string]::IsNullOrWhiteSpace($logFilePath)) {
+                Add-Content -LiteralPath $logFilePath -Value "  WhatIf: would convert to UTF-8 and create backup: $backupPath" -Encoding UTF8
+            }
             Write-Host "  WhatIf: přeuložil bych do UTF-8 a vytvořil zálohu: $backupPath"
             continue
         }
@@ -161,9 +215,26 @@ foreach ($file in $files) {
         $utf8NoBom = [System.Text.UTF8Encoding]::new($false)
         [System.IO.File]::WriteAllText($file.FullName, $text, $utf8NoBom)
 
+        if (-not [string]::IsNullOrWhiteSpace($logFilePath)) {
+            Add-Content -LiteralPath $logFilePath -Value "  Converted to UTF-8. Backup: $backupPath" -Encoding UTF8
+        }
+
         Write-Host "  Přeuloženo do UTF-8. Záloha: $backupPath"
     }
     catch {
+        if (-not [string]::IsNullOrWhiteSpace($logFilePath)) {
+            Add-Content -LiteralPath $logFilePath -Value "  ERROR: failed to process file: $($file.FullName). Error: $($_.Exception.Message)" -Encoding UTF8
+        }
         Write-Warning "  Nepodařilo se zpracovat soubor: $($file.FullName). Chyba: $($_.Exception.Message)"
+    }
+}
+
+if (-not [string]::IsNullOrWhiteSpace($logFilePath)) {
+    Add-Content -LiteralPath $logFilePath -Value "" -Encoding UTF8
+    Add-Content -LiteralPath $logFilePath -Value "End: $(Get-Date -Format 'yyyy-MM-dd HH:mm:ss')" -Encoding UTF8
+    Write-Host "Log: $logFilePath"
+
+    if (-not [string]::IsNullOrWhiteSpace($changedFilesLogPath)) {
+        Write-Host "Seznam souboru ke zmene: $changedFilesLogPath"
     }
 }
