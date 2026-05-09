@@ -196,7 +196,7 @@ foreach ($file in $files) {
 
         if ($WhatIf) {
             if (-not [string]::IsNullOrWhiteSpace($changedFilesLogPath)) {
-                Add-Content -LiteralPath $changedFilesLogPath -Value $file.FullName -Encoding UTF8
+                Add-Content -LiteralPath $changedFilesLogPath -Value "[$encoding] $($file.FullName)" -Encoding UTF8
             }
             if (-not [string]::IsNullOrWhiteSpace($logFilePath)) {
                 Add-Content -LiteralPath $logFilePath -Value "  WhatIf: would convert to UTF-8 and create backup: $backupPath" -Encoding UTF8
